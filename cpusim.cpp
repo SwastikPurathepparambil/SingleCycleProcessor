@@ -106,64 +106,85 @@ int main(int argc, char* argv[])
 	bool done = true;
 	while (done == true) // processor's main loop. Each iteration is equal to one clock cycle.  
 	{
+
 		//fetch 
+
 		// Step 1: read in the instruction from memory
 		// CPU accesses the instruction from instMem using PC
 		int PC_reg = myCPU.readPC();
 		// cout << "MSB: " << static_cast<int>(instMem[PC_reg + 0]) << endl;
 
-		// get the opcode
-		uint8_t OPCODE = instMem[PC_reg + 0] & 0x7F; // mask of 0b01111111 because we need the first 7 digits for opcode
 
-		// print out the OPCODE in bits // good! got OPCODE
-		cout << "Opcode byte (bin): " << std::bitset<8>(OPCODE) << endl;
+		uint8_t b0 = instMem[PC_reg + 0]; // bits [7:0]
+		uint8_t b1 = instMem[PC_reg + 1]; // bits [15:8]
+		uint8_t b2 = instMem[PC_reg + 2]; // bits [23:16]
+		uint8_t b3 = instMem[PC_reg + 3]; // bits [31:24]
 
-		// based off OPCODE, now we want to determine type of instruction
-		// Use a switch statement for this
-		// for now we will add functionality for 3 OPCODES
-		switch (OPCODE)
+		// Reconstruct full 32-bit instruction
+		uint32_t instr = (uint32_t)b0 | ((uint32_t)b1 << 8) | ((uint32_t)b2 << 16) | ((uint32_t)b3 << 24);
+
+		// Decode
+		uint8_t opcode = instr & 0x7F; // bits [6:0]
+
+		cout << "Opcode (bin): " << std::bitset<7>(opcode) << endl;
+
+		switch (opcode)
 		{
-			// THE 8TH BIT IS INCLUDED BECAUSE UINT8 BUT CAN IGNORE IT
-			// L-type: 00110111
-			case 55: {
-				/* code */
-				// step 1: let's see what bits 7-11 have
-				// 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
-				// 0  0  0  0  0  0  0 0 0 0 0 0 0 0 0 0
+			// U-type: LUI / AUIPC
+			// opcode = 0110111 (0x37)
+			case 0x37: {
+				uint8_t rd = (instr >> 7) & 0x1F;        
+				uint32_t imm = instr & 0xFFFFF000;       
 
-				// MOVE THIS DEF'N LATER
-				uint8_t b0 = instMem[PC_reg + 0];
-				uint8_t b1 = instMem[PC_reg + 1];
-				uint16_t rd = (((uint16_t)b1 << 8) | b0) & 0x0F80;
-				rd = rd >> 7;
-				cout << "rd byte (bin): " << std::bitset<16>(rd) << endl;
-
+				cout << "U-type instruction" << endl;
+				cout << "rd:  " << (int)rd << endl;
+				cout << "imm: " << std::bitset<32>(imm) << endl;
 
 				break;
 			}
-				// R-type: 00110011
-			case 51: {
-				/* code */
+
+			// R-type: register-register ALU
+			// opcode = 0110011 (0x33)
+			case 0x33: {
+				uint8_t rd     = (instr >> 7)  & 0x1F;
+				uint8_t funct3 = (instr >> 12) & 0x07;
+				uint8_t rs1    = (instr >> 15) & 0x1F;
+				uint8_t rs2    = (instr >> 20) & 0x1F;
+				uint8_t funct7 = (instr >> 25) & 0x7F;
+
+				cout << "R-type instruction" << endl;
+				cout << "rd:     " << (int)rd << endl;
+				cout << "rs1:    " << (int)rs1 << endl;
+				cout << "rs2:    " << (int)rs2 << endl;
+				cout << "funct3: " << std::bitset<3>(funct3) << endl;
+				cout << "funct7: " << std::bitset<7>(funct7) << endl;
+
 				break;
 			}
-				// I-type: 00010011
-			case 19: {
-				/* code */
-				break;
-			}		
-			default: {
+
+			// I-type: immediate ALU / loads
+			// opcode = 0010011 (0x13)
+			case 0x13: {
+				uint8_t rd     = (instr >> 7)  & 0x1F;
+				uint8_t funct3 = (instr >> 12) & 0x07;
+				uint8_t rs1    = (instr >> 15) & 0x1F;
+
+				// sign-extended immediate
+				int32_t imm = ((int32_t)instr) >> 20;
+
+				cout << "I-type instruction" << endl;
+				cout << "rd:     " << (int)rd << endl;
+				cout << "rs1:    " << (int)rs1 << endl;
+				cout << "funct3: " << std::bitset<3>(funct3) << endl;
+				cout << "imm:    " << imm << endl;
+
 				break;
 			}
+
+			default:
+				cout << "Unknown opcode" << endl;
+				break;
 		}
-
-		
-		// uint32_t inst = instMem[PC_reg + 3] + instMem[PC_reg + 2] + instMem[PC_reg + 1] + instMem[PC_reg + 0];
-		// std::string str = std::to_string(inst);
-		// cout << str << endl; 
-
-		
-
-		// decode
 		
 		// ... 
 		myCPU.incPC();
