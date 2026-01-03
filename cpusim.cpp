@@ -99,6 +99,7 @@ int main(int argc, char* argv[])
 
 	CPU myCPU;  // call the approriate constructor here to initialize the processor...  
 	// make sure to create a variable for PC and resets it to zero (e.g., unsigned int PC = 0); 
+	myCPU.setInstMem(instMem);
 
 	/* OPTIONAL: Instantiate your Instruction object here. */
 	//Instruction myInst;
